@@ -1,0 +1,81 @@
+<div class="branch-search">
+  <div class="search-header">
+    <h1 class="search-title">
+      <span class="search-icon">🏦</span>
+      Trova la tua Filiale
+    </h1>
+    <p class="search-subtitle">Cerca per nome, città o indirizzo</p>
+  </div>
+
+  <div class="search-box">
+    <input
+      type="text"
+      class="search-input"
+      placeholder="Es: Milano, Napoli, Via Dante..."
+      [formControl]="searchControl"
+      autocomplete="off"
+    />
+    <button
+      class="search-btn"
+      (click)="manualSearch$.next(searchControl.value)"
+      [disabled]="vm().isLoading"
+    >
+      <span class="btn-icon">🔍</span>
+      Cerca
+    </button>
+  </div>
+
+  <div class="search-meta">
+    @if (vm().term) {
+      <span class="meta-term">
+        Risultati per: <strong>"{{ vm().term }}"</strong>
+      </span>
+    }
+  </div>
+
+  <div class="results-container">
+    @if (vm().isLoading) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Ricerca in corso...</span>
+      </div>
+    }
+
+    @if (vm().error) {
+      <div class="error-state">
+        <span class="error-icon">⚠️</span>
+        <span>{{ vm().error }}</span>
+      </div>
+    }
+
+    @if (!vm().isLoading && !vm().error) {
+      <ul class="branch-list">
+        @for (branch of vm().results; track branch.id) {
+          <li class="branch-card">
+            <div class="branch-header">
+              <span class="branch-name">{{ branch.name }}</span>
+              <span class="branch-distance">📍 {{ branch.distanceKm }} km</span>
+            </div>
+            <div class="branch-details">
+              <span class="branch-address">{{ branch.address }}, {{ branch.zipCode }}</span>
+              <span class="branch-city">{{ branch.city }}</span>
+            </div>
+            <div class="branch-id">ID: {{ branch.id }}</div>
+          </li>
+        } @empty {
+          @if (vm().term.length >= 2) {
+            <li class="empty-state">
+              <span class="empty-icon">🔎</span>
+              <span>Nessuna filiale trovata per <strong>"{{ vm().term }}"</strong></span>
+            </li>
+          } @else {
+            <li class="hint-state">
+              <span class="hint-icon">💡</span>
+              <span>Digita almeno 2 caratteri per cercare una filiale</span>
+            </li>
+          }
+        }
+      </ul>
+    }
+  </div>
+</div>
