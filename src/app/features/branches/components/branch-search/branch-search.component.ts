@@ -1,16 +1,7 @@
-import {
-  Component,
-  inject,
-  OnInit,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import {
-  Observable,
-  Subject,
-  merge,
-  of,
-} from 'rxjs';
+import { Component, inject, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { ReactiveFormsModule, FormControl } from "@angular/forms";
+import { Observable, Subject, merge, of } from "rxjs";
 import {
   catchError,
   debounceTime,
@@ -19,41 +10,40 @@ import {
   map,
   mergeMap,
   startWith,
-} from 'rxjs/operators';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { BranchService } from '../../services/branch.service';
-import {
-  BranchSearchVM,
-  INITIAL_BRANCH_VM,
-} from '../../models/branch.model';
+} from "rxjs/operators";
+import { toSignal } from "@angular/core/rxjs-interop";
+import { BranchService } from "../../services/branch.service";
+import { BranchSearchVM, INITIAL_BRANCH_VM } from "../../models/branch.model";
 
 @Component({
-  selector: 'app-branch-search',
+  selector: "app-branch-search",
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './branch-search.component.html',
-  styleUrl: './branch-search.component.scss',
+  templateUrl: "./branch-search.component.html",
+  styleUrl: "./branch-search.component.scss",
 })
 export class BranchSearchComponent implements OnInit {
   private readonly branchService = inject(BranchService);
 
-  readonly searchControl = new FormControl('', { nonNullable: true });
+  readonly searchControl = new FormControl("", { nonNullable: true });
   readonly manualSearch$ = new Subject<string>();
 
   readonly searchTerm$ = merge(
     this.searchControl.valueChanges,
-    this.manualSearch$
+    this.manualSearch$,
   ).pipe(
-    startWith(''),
-    debounceTime(0),
-    map((term) => term.trim()),
-    distinctUntilChanged(),
-    filter((term) => term.length >= 2 || term.length === 0)
+    startWith(""), //all'inizio deve essere una stringa vuota 
+   // debounceTime(1000), NON DEVE STARE QUI 
+    map((term) => term.trim()),//toglie gli spazi iniziali di quello che digita l'utente
+    distinctUntilChanged(),//emette il valore solo se è diverso dal precente
+    filter((term) => term.length >= 2 || term.length === 0), //emette il valore solo se è maggiore di 2
   );
 
   readonly vm$: Observable<BranchSearchVM> = this.searchTerm$.pipe(
+    debounceTime(1000), //LO INSERISCO QUANDO PARTE LA CHIMATA CON LA PIPE 
     mergeMap((term) =>
       this.branchService.searchBranches(term).pipe(
+        
         map((results) => ({
           results,
           isLoading: false,
@@ -70,19 +60,19 @@ export class BranchSearchComponent implements OnInit {
           of({
             results: [],
             isLoading: false,
-            error: err?.message ?? 'Errore sconosciuto',
+            error: err?.message ?? "Errore sconosciuto",
             term,
-          })
-        )
-      )
-    )
+          }),
+        ),
+      ),
+      
+
+    ),
   );
 
   readonly vm = toSignal(this.vm$, { initialValue: INITIAL_BRANCH_VM });
 
   ngOnInit(): void {
-    this.vm$.subscribe((vm) =>
-      console.log('[analytics] vm changed:', vm.term)
-    );
+    this.vm$.subscribe((vm) => console.log("[analytics] vm changed:", vm.term));
   }
 }
