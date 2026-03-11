@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from "@angular/core";
+import { Component, inject, OnInit, OnDestroy, DestroyRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, FormControl } from "@angular/forms";
 import { Observable, Subject, merge, of } from "rxjs";
@@ -10,8 +10,9 @@ import {
   map,
   mergeMap,
   startWith,
+  switchMap,
 } from "rxjs/operators";
-import { toSignal } from "@angular/core/rxjs-interop";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { BranchService } from "../../services/branch.service";
 import { BranchSearchVM, INITIAL_BRANCH_VM } from "../../models/branch.model";
 
@@ -22,8 +23,11 @@ import { BranchSearchVM, INITIAL_BRANCH_VM } from "../../models/branch.model";
   templateUrl: "./branch-search.component.html",
   styleUrl: "./branch-search.component.scss",
 })
-export class BranchSearchComponent implements OnInit {
+export class BranchSearchComponent implements OnInit{
+  
   private readonly branchService = inject(BranchService);
+
+  private readonly destroy = inject(DestroyRef) //inject() usa il dependency injection container del componente
 
   readonly searchControl = new FormControl("", { nonNullable: true });
   readonly manualSearch$ = new Subject<string>();
@@ -41,7 +45,7 @@ export class BranchSearchComponent implements OnInit {
 
   readonly vm$: Observable<BranchSearchVM> = this.searchTerm$.pipe(
     debounceTime(1000), //LO INSERISCO QUANDO PARTE LA CHIMATA CON LA PIPE 
-    mergeMap((term) =>
+    mergeMap((term) => 
       this.branchService.searchBranches(term).pipe(
         
         map((results) => ({
@@ -73,6 +77,13 @@ export class BranchSearchComponent implements OnInit {
   readonly vm = toSignal(this.vm$, { initialValue: INITIAL_BRANCH_VM });
 
   ngOnInit(): void {
-    this.vm$.subscribe((vm) => console.log("[analytics] vm changed:", vm.term));
+    this.vm$.pipe(takeUntilDestroyed(this.destroy))
+    
+    .subscribe((vm) => console.log("[analytics] vm changed:", vm.term));
+    
   }
+
+  
+
+  
 }
